@@ -3,12 +3,14 @@ import { addDoc, collection, doc, onSnapshot, query, setDoc, updateDoc, where } 
 import { GlassButton } from '../components/GlassButton';
 import { GlassCard } from '../components/GlassCard';
 import { useAuth } from '../contexts/AuthContext';
+import { useViewPreferences } from '../contexts/ViewPreferencesContext';
 import { db } from '../firebase';
 import type { BudgetState, ExpenseRecord, IncomeRecord } from '../types';
 import { categoryOptions, formatMoney } from '../lib/formatters';
 
 export const BudgetPage = () => {
   const { profile } = useAuth();
+  const { viewMode, selectedMonth, setViewMode, setSelectedMonth } = useViewPreferences('budget');
   const [budget, setBudget] = useState('');
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [income, setIncome] = useState<IncomeRecord[]>([]);
@@ -18,8 +20,6 @@ export const BudgetPage = () => {
   const [error, setError] = useState('');
 
   const availableCategories = useMemo(() => categoryOptions(profile?.settings.customCategories), [profile?.settings.customCategories]);
-  const [viewMode, setViewMode] = useState<'monthly' | 'overall'>('monthly');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const currentBudget = budgets.find((item) => item.month === selectedMonth);
 
   useEffect(() => {
@@ -136,18 +136,6 @@ export const BudgetPage = () => {
             <option value="overall">Overall</option>
           </select>
         </div>
-        {viewMode === 'monthly' ? (
-          <div className="field-group">
-            <label className="field-label" htmlFor="budget-month-picker">Month</label>
-            <input
-              id="budget-month-picker"
-              className="glass-input"
-              type="month"
-              value={selectedMonth}
-              onChange={(event) => setSelectedMonth(event.target.value)}
-            />
-          </div>
-        ) : null}
         <label className="field-group">
           <span className="field-label">Monthly budget</span>
           <input className="glass-input" type="number" value={budget} onChange={(event) => setBudget(event.target.value)} />

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { GlassCard } from '../components/GlassCard';
 import { ExpenseChart } from '../components/Charts';
 import { useAuth } from '../contexts/AuthContext';
+import { useViewPreferences } from '../contexts/ViewPreferencesContext';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { ExpenseRecord, IncomeRecord } from '../types';
@@ -9,10 +10,9 @@ import { formatMoney } from '../lib/formatters';
 
 export const ReportsPage = () => {
   const { profile } = useAuth();
+  const { viewMode, selectedMonth, setViewMode, setSelectedMonth } = useViewPreferences('reports');
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [income, setIncome] = useState<IncomeRecord[]>([]);
-  const [viewMode, setViewMode] = useState<'monthly' | 'overall'>('monthly');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -61,18 +61,6 @@ export const ReportsPage = () => {
             <option value="overall">Overall</option>
           </select>
         </div>
-        {viewMode === 'monthly' ? (
-          <div className="field-group">
-            <label className="field-label" htmlFor="reports-month-picker">Month</label>
-            <input
-              id="reports-month-picker"
-              className="glass-input"
-              type="month"
-              value={selectedMonth}
-              onChange={(event) => setSelectedMonth(event.target.value)}
-            />
-          </div>
-        ) : null}
       </header>
 
       <GlassCard>

@@ -11,7 +11,7 @@ const items = [
 ];
 
 export const Navbar = () => (
-  <nav className="bottom-nav">
+  <nav className="bottom-nav" aria-label="Primary navigation">
     {items.map((item) => (
       <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
         {item.label}

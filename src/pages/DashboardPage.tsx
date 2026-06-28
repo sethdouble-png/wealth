@@ -4,6 +4,7 @@ import { GlassButton } from '../components/GlassButton';
 import { GlassCard } from '../components/GlassCard';
 import { ExpenseChart, TrendChart } from '../components/Charts';
 import { useAuth } from '../contexts/AuthContext';
+import { useViewPreferences } from '../contexts/ViewPreferencesContext';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import type { ExpenseRecord, GoalRecord, IncomeRecord, BudgetState } from '../types';
@@ -13,12 +14,11 @@ import { loadLocalCollection, saveLocalCollection } from '../lib/offline';
 
 export const DashboardPage = () => {
   const { profile } = useAuth();
+  const { viewMode, selectedMonth, setViewMode, setSelectedMonth } = useViewPreferences('dashboard');
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [income, setIncome] = useState<IncomeRecord[]>([]);
   const [goals, setGoals] = useState<GoalRecord[]>([]);
   const [currentBudget, setCurrentBudget] = useState<BudgetState | null>(null);
-  const [viewMode, setViewMode] = useState<'monthly' | 'overall'>('monthly');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [rates, setRates] = useState<Record<string, number>>({});
 
   useEffect(() => {

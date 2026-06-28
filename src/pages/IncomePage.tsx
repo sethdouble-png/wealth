@@ -6,15 +6,15 @@ import { GlassCard } from '../components/GlassCard';
 import { CurrencySelector } from '../components/CurrencySelector';
 import { IncomeItem } from '../components/IncomeItem';
 import { useAuth } from '../contexts/AuthContext';
+import { useViewPreferences } from '../contexts/ViewPreferencesContext';
 import { db } from '../firebase';
 import { convertAmount, getRates } from '../lib/currency';
 import type { Currency, IncomeRecord } from '../types';
 
 export const IncomePage = () => {
   const { profile } = useAuth();
+  const { viewMode, selectedMonth, setViewMode, setSelectedMonth } = useViewPreferences('income');
   const [income, setIncome] = useState<IncomeRecord[]>([]);
-  const [viewMode, setViewMode] = useState<'monthly' | 'overall'>('monthly');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('USD');
@@ -124,18 +124,6 @@ export const IncomePage = () => {
             <option value="overall">Overall</option>
           </select>
         </div>
-        {viewMode === 'monthly' ? (
-          <div className="field-group">
-            <label className="field-label" htmlFor="income-month-picker">Month</label>
-            <input
-              id="income-month-picker"
-              className="glass-input"
-              type="month"
-              value={selectedMonth}
-              onChange={(event) => setSelectedMonth(event.target.value)}
-            />
-          </div>
-        ) : null}
         <Link to="/dashboard">
           <GlassButton variant="secondary">Back</GlassButton>
         </Link>
