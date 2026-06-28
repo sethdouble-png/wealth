@@ -13,6 +13,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Navbar } from './components/Navbar';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
+import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
 
 const AppRoutes = () => {
   const { user, loading, profile } = useAuth();
@@ -51,6 +52,7 @@ const AppRoutes = () => {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       <PwaInstallPrompt />
+      <PwaUpdatePrompt />
       <Navbar />
     </div>
   );
