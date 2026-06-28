@@ -9,7 +9,7 @@ import { categoryOptions, formatMoney } from '../lib/formatters';
 
 export const BudgetPage = () => {
   const { profile } = useAuth();
-  const [budget, setBudget] = useState('5000');
+  const [budget, setBudget] = useState('');
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [income, setIncome] = useState<IncomeRecord[]>([]);
   const [budgets, setBudgets] = useState<BudgetState[]>([]);
@@ -18,8 +18,9 @@ export const BudgetPage = () => {
   const [error, setError] = useState('');
 
   const availableCategories = useMemo(() => categoryOptions(profile?.settings.customCategories), [profile?.settings.customCategories]);
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const currentBudget = budgets.find((item) => item.month === currentMonth);
+  const [viewMode, setViewMode] = useState<'monthly' | 'overall'>('monthly');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const currentBudget = budgets.find((item) => item.month === selectedMonth);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -46,6 +47,7 @@ export const BudgetPage = () => {
 
   useEffect(() => {
     if (!currentBudget) {
+      setBudget('');
       setCategoryBudgets(Object.fromEntries(availableCategories.map((category) => [category, '0'])));
       return;
     }
@@ -58,21 +60,32 @@ export const BudgetPage = () => {
   }, [currentBudget, availableCategories]);
 
   const summary = useMemo(() => {
-    const month = currentMonth;
-    const expenseTotal = expenses.filter((item) => item.date.startsWith(month)).reduce((sum, item) => sum + item.convertedAmount, 0);
-    const incomeTotal = income.filter((item) => item.date.startsWith(month)).reduce((sum, item) => sum + item.convertedAmount, 0);
+    const month = viewMode === 'monthly' ? selectedMonth : null;
+    const expenseTotal = month
+      ? expenses.filter((item) => item.date.startsWith(month)).reduce((sum, item) => sum + item.convertedAmount, 0)
+      : expenses.reduce((sum, item) => sum + item.convertedAmount, 0);
+    const incomeTotal = month
+      ? income.filter((item) => item.date.startsWith(month)).reduce((sum, item) => sum + item.convertedAmount, 0)
+      : income.reduce((sum, item) => sum + item.convertedAmount, 0);
     const savings = incomeTotal - expenseTotal;
-    const progress = Math.min(100, (expenseTotal / Number(budget || 1)) * 100);
+    const totalBudgetValue = Number(budget || 0);
+    const progress = viewMode === 'monthly' && totalBudgetValue > 0 ? Math.min(100, (expenseTotal / totalBudgetValue) * 100) : 0;
+    const budgetLabel = viewMode === 'monthly'
+      ? totalBudgetValue > 0
+        ? expenseTotal > totalBudgetValue
+          ? 'Over budget'
+          : 'On track'
+        : 'No budget set'
+      : 'Overall view';
     const categorySpent = Object.fromEntries(
       availableCategories.map((category) => [
         category,
-        expenses
-          .filter((item) => item.date.startsWith(month) && item.category === category)
+        (month ? expenses.filter((item) => item.date.startsWith(month) && item.category === category) : expenses.filter((item) => item.category === category))
           .reduce((sum, item) => sum + item.convertedAmount, 0),
       ])
     );
-    return { expenseTotal, incomeTotal, savings, progress, categorySpent };
-  }, [budget, expenses, income, availableCategories, currentMonth]);
+    return { expenseTotal, incomeTotal, savings, progress, budgetLabel, categorySpent };
+  }, [budget, expenses, income, availableCategories, selectedMonth, viewMode]);
 
   const saveBudget = async () => {
     setMessage('');
@@ -80,7 +93,7 @@ export const BudgetPage = () => {
     if (!profile?.id) return;
     const payload = {
       userId: profile.id,
-      month: currentMonth,
+      month: selectedMonth,
       totalBudget: Number(budget),
       categoryBudgets: Object.fromEntries(
         availableCategories.map((category) => [category, Number(categoryBudgets[category] || 0)])
@@ -111,6 +124,30 @@ export const BudgetPage = () => {
       </header>
 
       <GlassCard>
+        <div className="field-group">
+          <label className="field-label" htmlFor="budget-view-mode">View</label>
+          <select
+            id="budget-view-mode"
+            className="glass-input"
+            value={viewMode}
+            onChange={(event) => setViewMode(event.target.value as 'monthly' | 'overall')}
+          >
+            <option value="monthly">Monthly</option>
+            <option value="overall">Overall</option>
+          </select>
+        </div>
+        {viewMode === 'monthly' ? (
+          <div className="field-group">
+            <label className="field-label" htmlFor="budget-month-picker">Month</label>
+            <input
+              id="budget-month-picker"
+              className="glass-input"
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
+          </div>
+        ) : null}
         <label className="field-group">
           <span className="field-label">Monthly budget</span>
           <input className="glass-input" type="number" value={budget} onChange={(event) => setBudget(event.target.value)} />
@@ -129,13 +166,13 @@ export const BudgetPage = () => {
           <div className="progress-bar" style={{ width: `${summary.progress}%` }} />
         </div>
         <div className="stats-list">
-          <p>Budget: {formatMoney(Number(budget), profile?.baseCurrency || 'UGX')}</p>
+          <p>Budget: {budget ? formatMoney(Number(budget), profile?.baseCurrency || 'UGX') : 'Not set'}</p>
           <p>Spent: {formatMoney(summary.expenseTotal, profile?.baseCurrency || 'UGX')}</p>
           <p>Savings: {formatMoney(summary.savings, profile?.baseCurrency || 'UGX')}</p>
         </div>
         <div className="stats-list">
-          <p>{summary.expenseTotal > Number(budget || 0) ? 'Over budget this month' : 'On track with your budget'}</p>
-          <p>{summary.expenseTotal > Number(budget || 0) ? 'Review category budgets below' : 'Keep going!'}</p>
+          <p>{summary.budgetLabel === 'No budget set' ? 'No monthly budget has been saved.' : summary.budgetLabel === 'Over budget' ? 'Over budget this month' : 'On track with your budget'}</p>
+          <p>{summary.budgetLabel === 'No budget set' ? 'Save a budget to start tracking progress.' : summary.expenseTotal > Number(budget || 0) ? 'Review category budgets below' : 'Keep going!'}</p>
         </div>
       </GlassCard>
 

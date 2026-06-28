@@ -1,4 +1,0 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { formatDate, formatMoney } from '../lib/formatters';
-export const IncomeItem = ({ item, onDelete }) => (_jsxs("li", { className: "list-card", children: [_jsxs("div", { children: [_jsx("p", { className: "list-title", children: item.source }), _jsx("p", { className: "list-subtitle", children: item.notes || 'No notes' }), _jsx("p", { className: "list-date", children: formatDate(item.date) })] }), _jsxs("div", { className: "list-actions", children: [_jsxs("div", { children: [_jsx("p", { className: "list-amount positive", children: formatMoney(item.convertedAmount, 'UGX') }), _jsx("p", { className: "list-subtitle", children: formatMoney(item.amount, item.currency) })] }), _jsx("button", { className: "ghost-button", onClick: () => onDelete(item.id), children: "Delete" })] })] }));
-//# sourceMappingURL=IncomeItem.js.map

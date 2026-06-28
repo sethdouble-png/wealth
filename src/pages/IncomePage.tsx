@@ -13,6 +13,8 @@ import type { Currency, IncomeRecord } from '../types';
 export const IncomePage = () => {
   const { profile } = useAuth();
   const [income, setIncome] = useState<IncomeRecord[]>([]);
+  const [viewMode, setViewMode] = useState<'monthly' | 'overall'>('monthly');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('USD');
@@ -76,6 +78,11 @@ export const IncomePage = () => {
     }
   };
 
+  const filteredIncome = useMemo(
+    () => (viewMode === 'monthly' ? income.filter((item) => item.date.startsWith(selectedMonth)) : income),
+    [income, selectedMonth, viewMode]
+  );
+
   const handleEdit = (item: IncomeRecord) => {
     setEditingIncome(item);
     setSource(item.source);
@@ -105,6 +112,30 @@ export const IncomePage = () => {
           <p className="eyebrow">Income tracking</p>
           <h1>Grow your balance</h1>
         </div>
+        <div className="field-group">
+          <label className="field-label" htmlFor="income-view-mode">View</label>
+          <select
+            id="income-view-mode"
+            className="glass-input"
+            value={viewMode}
+            onChange={(event) => setViewMode(event.target.value as 'monthly' | 'overall')}
+          >
+            <option value="monthly">Monthly</option>
+            <option value="overall">Overall</option>
+          </select>
+        </div>
+        {viewMode === 'monthly' ? (
+          <div className="field-group">
+            <label className="field-label" htmlFor="income-month-picker">Month</label>
+            <input
+              id="income-month-picker"
+              className="glass-input"
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
+          </div>
+        ) : null}
         <Link to="/dashboard">
           <GlassButton variant="secondary">Back</GlassButton>
         </Link>
@@ -152,7 +183,7 @@ export const IncomePage = () => {
           <span>{income.length} entries</span>
         </div>
         <ul className="list-stack">
-          {income.map((item) => (
+          {filteredIncome.map((item) => (
             <IncomeItem
               key={item.id}
               item={item}

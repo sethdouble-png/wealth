@@ -11,6 +11,7 @@ export const ReportsPage = () => {
   const { profile } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [income, setIncome] = useState<IncomeRecord[]>([]);
+  const [viewMode, setViewMode] = useState<'monthly' | 'overall'>('monthly');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
   useEffect(() => {
@@ -31,15 +32,15 @@ export const ReportsPage = () => {
   }, [profile?.id]);
 
   const insights = useMemo(() => {
-    const month = selectedMonth;
-    const monthlyExpenses = expenses.filter((item) => item.date.startsWith(month));
-    const monthlyIncome = income.filter((item) => item.date.startsWith(month));
+    const month = viewMode === 'monthly' ? selectedMonth : null;
+    const monthlyExpenses = month ? expenses.filter((item) => item.date.startsWith(month)) : expenses;
+    const monthlyIncome = month ? income.filter((item) => item.date.startsWith(month)) : income;
     const biggestCategory = monthlyExpenses.reduce((best, expense) => (expense.convertedAmount > best.value ? { name: expense.category, value: expense.convertedAmount } : best), { name: 'None', value: 0 });
     const highestSource = monthlyIncome.reduce((best, item) => (item.convertedAmount > best.value ? { name: item.source, value: item.convertedAmount } : best), { name: 'None', value: 0 });
     const averageSavings = monthlyIncome.reduce((sum, item) => sum + item.convertedAmount, 0) - monthlyExpenses.reduce((sum, item) => sum + item.convertedAmount, 0);
 
     return { biggestCategory, highestSource, averageSavings };
-  }, [expenses, income, selectedMonth]);
+  }, [expenses, income, selectedMonth, viewMode]);
 
   return (
     <div className="page-shell">
@@ -49,15 +50,29 @@ export const ReportsPage = () => {
           <h1>Monthly insights</h1>
         </div>
         <div className="field-group">
-          <label className="field-label" htmlFor="reports-month-picker">Month</label>
-          <input
-            id="reports-month-picker"
+          <label className="field-label" htmlFor="reports-view-mode">View</label>
+          <select
+            id="reports-view-mode"
             className="glass-input"
-            type="month"
-            value={selectedMonth}
-            onChange={(event) => setSelectedMonth(event.target.value)}
-          />
+            value={viewMode}
+            onChange={(event) => setViewMode(event.target.value as 'monthly' | 'overall')}
+          >
+            <option value="monthly">Monthly</option>
+            <option value="overall">Overall</option>
+          </select>
         </div>
+        {viewMode === 'monthly' ? (
+          <div className="field-group">
+            <label className="field-label" htmlFor="reports-month-picker">Month</label>
+            <input
+              id="reports-month-picker"
+              className="glass-input"
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
+          </div>
+        ) : null}
       </header>
 
       <GlassCard>
@@ -68,7 +83,10 @@ export const ReportsPage = () => {
         </div>
       </GlassCard>
 
-      <ExpenseChart expenses={expenses.filter((item) => item.date.startsWith(selectedMonth))} baseCurrency={profile?.baseCurrency || 'UGX'} />
+      <ExpenseChart
+        expenses={viewMode === 'monthly' ? expenses.filter((item) => item.date.startsWith(selectedMonth)) : expenses}
+        baseCurrency={profile?.baseCurrency || 'UGX'}
+      />
     </div>
   );
 };

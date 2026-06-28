@@ -6,6 +6,7 @@ const items = [
   { to: '/income', label: 'Income' },
   { to: '/budget', label: 'Budget' },
   { to: '/recurring', label: 'Recurring' },
+  { to: '/reports', label: 'Reports' },
   { to: '/settings', label: 'Settings' },
 ];
 

@@ -17,6 +17,7 @@ export const DashboardPage = () => {
   const [income, setIncome] = useState<IncomeRecord[]>([]);
   const [goals, setGoals] = useState<GoalRecord[]>([]);
   const [currentBudget, setCurrentBudget] = useState<BudgetState | null>(null);
+  const [viewMode, setViewMode] = useState<'monthly' | 'overall'>('monthly');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [rates, setRates] = useState<Record<string, number>>({});
 
@@ -49,19 +50,26 @@ export const DashboardPage = () => {
       saveLocalCollection(`goals-${profile.id}`, nextGoals);
     });
 
+    return () => {
+      expenseUnsub();
+      incomeUnsub();
+      goalsUnsub();
+    };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (!profile?.id || viewMode === 'overall') {
+      setCurrentBudget(null);
+      return;
+    }
     const budgetQuery = query(collection(db, 'budgets'), where('userId', '==', profile.id), where('month', '==', selectedMonth));
     const budgetUnsub = onSnapshot(budgetQuery, (snapshot) => {
       const [budget] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BudgetState));
       setCurrentBudget(budget || null);
     });
 
-    return () => {
-      expenseUnsub();
-      incomeUnsub();
-      goalsUnsub();
-      budgetUnsub();
-    };
-  }, [profile?.id]);
+    return () => budgetUnsub();
+  }, [profile?.id, selectedMonth, viewMode]);
 
   useEffect(() => {
     if (!profile?.baseCurrency) return;
@@ -69,16 +77,26 @@ export const DashboardPage = () => {
   }, [profile]);
 
   const totals = useMemo(() => {
-    const monthKey = selectedMonth;
-    const monthlyExpenses = expenses.filter((item) => item.date.startsWith(monthKey)).reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
-    const monthlyIncome = income.filter((item) => item.date.startsWith(monthKey)).reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
+    const monthKey = viewMode === 'monthly' ? selectedMonth : null;
+    const monthlyExpenses = monthKey
+      ? expenses.filter((item) => item.date.startsWith(monthKey)).reduce((sum, item) => sum + (item.convertedAmount || 0), 0)
+      : expenses.reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
+    const monthlyIncome = monthKey
+      ? income.filter((item) => item.date.startsWith(monthKey)).reduce((sum, item) => sum + (item.convertedAmount || 0), 0)
+      : income.reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
     const monthlySavings = monthlyIncome - monthlyExpenses;
-    const totalBudget = currentBudget?.totalBudget ?? 5000;
-    const progress = Math.min(100, (monthlyExpenses / (totalBudget || 1)) * 100);
-    const budgetLabel = monthlyExpenses > totalBudget ? 'Over budget' : 'On track';
+    const totalBudget = viewMode === 'monthly' ? currentBudget?.totalBudget ?? 0 : 0;
+    const progress = viewMode === 'monthly' && totalBudget > 0 ? Math.min(100, (monthlyExpenses / totalBudget) * 100) : 0;
+    const budgetLabel = viewMode === 'monthly'
+      ? totalBudget > 0
+        ? monthlyExpenses > totalBudget
+          ? 'Over budget'
+          : 'On track'
+        : 'No budget set'
+      : 'Overall view';
 
     return { monthlyExpenses, monthlyIncome, monthlySavings, progress, budgetLabel };
-  }, [expenses, income, currentBudget, selectedMonth]);
+  }, [expenses, income, currentBudget, selectedMonth, viewMode]);
 
   return (
     <div className="page-shell">
@@ -88,15 +106,29 @@ export const DashboardPage = () => {
           <h1>{profile?.name || 'Your'} dashboard</h1>
         </div>
         <div className="field-group">
-          <label className="field-label" htmlFor="dashboard-month-picker">Month</label>
-          <input
-            id="dashboard-month-picker"
+          <label className="field-label" htmlFor="dashboard-view-mode">View</label>
+          <select
+            id="dashboard-view-mode"
             className="glass-input"
-            type="month"
-            value={selectedMonth}
-            onChange={(event) => setSelectedMonth(event.target.value)}
-          />
+            value={viewMode}
+            onChange={(event) => setViewMode(event.target.value as 'monthly' | 'overall')}
+          >
+            <option value="monthly">Monthly</option>
+            <option value="overall">Overall</option>
+          </select>
         </div>
+        {viewMode === 'monthly' ? (
+          <div className="field-group">
+            <label className="field-label" htmlFor="dashboard-month-picker">Month</label>
+            <input
+              id="dashboard-month-picker"
+              className="glass-input"
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
+          </div>
+        ) : null}
         <Link to="/reports">
           <GlassButton variant="secondary">Reports</GlassButton>
         </Link>
@@ -132,7 +164,10 @@ export const DashboardPage = () => {
       </GlassCard>
 
       <div className="chart-grid">
-        <ExpenseChart expenses={expenses} income={income} baseCurrency={profile?.baseCurrency || 'UGX'} />
+        <ExpenseChart
+          expenses={viewMode === 'monthly' ? expenses.filter((item) => item.date.startsWith(selectedMonth)) : expenses}
+          baseCurrency={profile?.baseCurrency || 'UGX'}
+        />
         <TrendChart expenses={expenses} income={income} />
       </div>
 

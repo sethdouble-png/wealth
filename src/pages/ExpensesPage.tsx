@@ -14,6 +14,8 @@ import type { Currency, ExpenseRecord, RecordType } from '../types';
 export const ExpensesPage = () => {
   const { profile } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [viewMode, setViewMode] = useState<'monthly' | 'overall'>('monthly');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [category, setCategory] = useState('Food');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('USD');
@@ -38,7 +40,10 @@ export const ExpensesPage = () => {
     getRates(profile.baseCurrency, profile.settings?.currencyApi || 'exchangerate.host').then((nextRates) => setRates(nextRates as Record<Currency, number>));
   }, [profile]);
 
-  const filteredExpenses = useMemo(() => expenses, [expenses]);
+  const filteredExpenses = useMemo(
+    () => (viewMode === 'monthly' ? expenses.filter((item) => item.date.startsWith(selectedMonth)) : expenses),
+    [expenses, selectedMonth, viewMode]
+  );
   const availableCategories = useMemo(() => categoryOptions(profile?.settings.customCategories), [profile?.settings.customCategories]);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -109,6 +114,30 @@ export const ExpensesPage = () => {
           <p className="eyebrow">Expense tracking</p>
           <h1>Spend with intention</h1>
         </div>
+        <div className="field-group">
+          <label className="field-label" htmlFor="expenses-view-mode">View</label>
+          <select
+            id="expenses-view-mode"
+            className="glass-input"
+            value={viewMode}
+            onChange={(event) => setViewMode(event.target.value as 'monthly' | 'overall')}
+          >
+            <option value="monthly">Monthly</option>
+            <option value="overall">Overall</option>
+          </select>
+        </div>
+        {viewMode === 'monthly' ? (
+          <div className="field-group">
+            <label className="field-label" htmlFor="expenses-month-picker">Month</label>
+            <input
+              id="expenses-month-picker"
+              className="glass-input"
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
+          </div>
+        ) : null}
         <Link to="/dashboard">
           <GlassButton variant="secondary">Back</GlassButton>
         </Link>

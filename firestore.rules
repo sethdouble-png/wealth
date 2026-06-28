@@ -8,17 +8,19 @@ service cloud.firestore {
     match /expenses/{expenseId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null
+      allow update: if request.auth != null
           && resource.data.userId == request.auth.uid
           && (request.resource.data.userId == request.auth.uid || !request.resource.data.keys().hasAny(['userId']));
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     match /income/{incomeId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null
+      allow update: if request.auth != null
           && resource.data.userId == request.auth.uid
           && (request.resource.data.userId == request.auth.uid || !request.resource.data.keys().hasAny(['userId']));
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     match /budgets/{budgetId} {
@@ -32,17 +34,19 @@ service cloud.firestore {
     match /goals/{goalId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null
+      allow update: if request.auth != null
           && resource.data.userId == request.auth.uid
           && (request.resource.data.userId == request.auth.uid || !request.resource.data.keys().hasAny(['userId']));
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     match /recurring/{recurringId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null
+      allow update: if request.auth != null
           && resource.data.userId == request.auth.uid
           && (request.resource.data.userId == request.auth.uid || !request.resource.data.keys().hasAny(['userId']));
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }
 }
