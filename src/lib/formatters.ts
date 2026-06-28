@@ -7,7 +7,11 @@ export const currencySymbols: Record<Currency, string> = {
 };
 
 export const currencyOptions: Currency[] = ['UGX', 'AED', 'USD'];
-export const expenseCategories = ['Food', 'Transport', 'Rent', 'Utilities', 'Shopping', 'Misc'] as const;
+export const defaultCategoryOptions = ['Food', 'Transport', 'Rent', 'Utilities', 'Shopping', 'Misc'] as const;
+export const expenseCategories = [...defaultCategoryOptions] as string[];
+
+export const categoryOptions = (customCategories?: string[]) =>
+  customCategories && customCategories.length ? customCategories : expenseCategories;
 
 export const formatMoney = (value: number, currency: Currency) => {
   const amount = Number.isFinite(value) ? value : 0;

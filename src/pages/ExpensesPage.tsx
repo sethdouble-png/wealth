@@ -7,14 +7,14 @@ import { ExpenseItem } from '../components/ExpenseItem';
 import { CurrencySelector } from '../components/CurrencySelector';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { expenseCategories } from '../lib/formatters';
+import { categoryOptions } from '../lib/formatters';
 import { convertAmount, getRates } from '../lib/currency';
-import type { Currency, ExpenseCategory, ExpenseRecord } from '../types';
+import type { Currency, ExpenseRecord, RecordType } from '../types';
 
 export const ExpensesPage = () => {
   const { profile } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
-  const [category, setCategory] = useState<ExpenseCategory>('Food');
+  const [category, setCategory] = useState('Food');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('USD');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -36,6 +36,7 @@ export const ExpensesPage = () => {
   }, [profile]);
 
   const filteredExpenses = useMemo(() => expenses, [expenses]);
+  const availableCategories = useMemo(() => categoryOptions(profile?.settings.customCategories), [profile?.settings.customCategories]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -77,8 +78,8 @@ export const ExpensesPage = () => {
           <div className="input-grid">
             <label className="field-group">
               <span className="field-label">Category</span>
-              <select className="glass-input" value={category} onChange={(event) => setCategory(event.target.value as ExpenseCategory)}>
-                {expenseCategories.map((option) => (
+              <select className="glass-input" value={category} onChange={(event) => setCategory(event.target.value)}>
+                {availableCategories.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -112,7 +113,7 @@ export const ExpensesPage = () => {
         </div>
         <ul className="list-stack">
           {filteredExpenses.map((item) => (
-            <ExpenseItem key={item.id} item={item} onDelete={handleDelete} />
+            <ExpenseItem key={item.id} item={item} baseCurrency={profile?.baseCurrency || 'UGX'} onDelete={handleDelete} />
           ))}
         </ul>
       </GlassCard>

@@ -5,12 +5,13 @@ export type RecordType = 'income' | 'expense';
 export interface ExpenseRecord {
   id: string;
   userId: string;
-  category: ExpenseCategory;
+  category: ExpenseCategory | string;
   amount: number;
   currency: Currency;
   convertedAmount: number;
   date: string;
   notes: string;
+  receiptUrl?: string;
 }
 
 export interface IncomeRecord {
@@ -22,6 +23,21 @@ export interface IncomeRecord {
   convertedAmount: number;
   date: string;
   notes: string;
+  receiptUrl?: string;
+}
+
+export interface RecurringRecord {
+  id: string;
+  userId: string;
+  type: RecordType;
+  category?: ExpenseCategory | string;
+  source?: string;
+  amount: number;
+  currency: Currency;
+  interval: 'weekly' | 'monthly' | 'yearly';
+  startDate: string;
+  notes: string;
+  active: boolean;
 }
 
 export interface BudgetState {
@@ -29,7 +45,7 @@ export interface BudgetState {
   userId: string;
   month: string;
   totalBudget: number;
-  categoryBudgets: Record<ExpenseCategory, number>;
+  categoryBudgets: Record<string, number>;
 }
 
 export interface GoalRecord {
@@ -49,5 +65,6 @@ export interface UserProfile {
   settings: {
     theme: 'light' | 'dark';
     currencyApi: 'exchangerate.host' | 'frankfurter.app' | 'currencyfreaks';
+    customCategories: string[];
   };
 }

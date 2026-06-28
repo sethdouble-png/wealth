@@ -49,7 +49,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           name: firebaseUser.displayName || 'Budgeter',
           email: firebaseUser.email || '',
           baseCurrency: 'UGX',
-          settings: { theme: 'light', currencyApi: 'exchangerate.host' },
+          settings: {
+            theme: 'light',
+            currencyApi: 'exchangerate.host',
+            customCategories: ['Food', 'Transport', 'Rent', 'Utilities', 'Shopping', 'Misc'],
+          },
         };
         await setDoc(profileRef, fallbackProfile);
         setProfile(fallbackProfile);
@@ -72,7 +76,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       name,
       email,
       baseCurrency: 'UGX',
-      settings: { theme: 'light', currencyApi: 'exchangerate.host' },
+      settings: {
+        theme: 'light',
+        currencyApi: 'exchangerate.host',
+        customCategories: ['Food', 'Transport', 'Rent', 'Utilities', 'Shopping', 'Misc'],
+      },
     };
     await setDoc(doc(db, 'users', result.user.uid), profilePayload);
     setProfile(profilePayload);

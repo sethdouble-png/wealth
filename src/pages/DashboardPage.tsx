@@ -60,13 +60,15 @@ export const DashboardPage = () => {
   }, [profile]);
 
   const totals = useMemo(() => {
-    const monthlyExpenses = expenses.filter((item) => item.date.startsWith(new Date().toISOString().slice(0, 7))).reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
-    const monthlyIncome = income.filter((item) => item.date.startsWith(new Date().toISOString().slice(0, 7))).reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const monthlyExpenses = expenses.filter((item) => item.date.startsWith(monthKey)).reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
+    const monthlyIncome = income.filter((item) => item.date.startsWith(monthKey)).reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
     const monthlySavings = monthlyIncome - monthlyExpenses;
     const totalBudget = 5000;
-    const progress = Math.min(100, (monthlyExpenses / totalBudget) * 100);
+    const progress = Math.min(100, (monthlyExpenses / (totalBudget || 1)) * 100);
+    const budgetLabel = monthlyExpenses > totalBudget ? 'Over budget' : 'On track';
 
-    return { monthlyExpenses, monthlyIncome, monthlySavings, progress };
+    return { monthlyExpenses, monthlyIncome, monthlySavings, progress, budgetLabel };
   }, [expenses, income]);
 
   return (
@@ -103,6 +105,10 @@ export const DashboardPage = () => {
         </div>
         <div className="progress-track">
           <div className="progress-bar" style={{ width: `${totals.progress}%` }} />
+        </div>
+        <div className="stats-list">
+          <p>{totals.budgetLabel}</p>
+          {totals.budgetLabel === 'Over budget' ? <p className="error-message">Review your budget plan.</p> : null}
         </div>
       </GlassCard>
 

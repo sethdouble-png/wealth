@@ -5,6 +5,7 @@ const items = [
   { to: '/expenses', label: 'Spend' },
   { to: '/income', label: 'Income' },
   { to: '/budget', label: 'Budget' },
+  { to: '/recurring', label: 'Recurring' },
   { to: '/settings', label: 'Settings' },
 ];
 

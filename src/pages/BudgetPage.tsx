@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { addDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
+import { addDoc, collection, doc, onSnapshot, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { GlassButton } from '../components/GlassButton';
 import { GlassCard } from '../components/GlassCard';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import type { BudgetState, ExpenseRecord, IncomeRecord } from '../types';
-import { formatMoney } from '../lib/formatters';
+import { categoryOptions, formatMoney } from '../lib/formatters';
 
 export const BudgetPage = () => {
   const { profile } = useAuth();
@@ -13,6 +13,11 @@ export const BudgetPage = () => {
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [income, setIncome] = useState<IncomeRecord[]>([]);
   const [budgets, setBudgets] = useState<BudgetState[]>([]);
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
+
+  const availableCategories = useMemo(() => categoryOptions(profile?.settings.customCategories), [profile?.settings.customCategories]);
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentBudget = budgets.find((item) => item.month === currentMonth);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -37,23 +42,52 @@ export const BudgetPage = () => {
     };
   }, [profile?.id]);
 
+  useEffect(() => {
+    if (!currentBudget) {
+      setCategoryBudgets(Object.fromEntries(availableCategories.map((category) => [category, '0'])));
+      return;
+    }
+    setBudget(currentBudget.totalBudget.toString());
+    setCategoryBudgets(
+      Object.fromEntries(
+        availableCategories.map((category) => [category, String(currentBudget.categoryBudgets?.[category] ?? 0)])
+      )
+    );
+  }, [currentBudget, availableCategories]);
+
   const summary = useMemo(() => {
-    const month = new Date().toISOString().slice(0, 7);
+    const month = currentMonth;
     const expenseTotal = expenses.filter((item) => item.date.startsWith(month)).reduce((sum, item) => sum + item.convertedAmount, 0);
     const incomeTotal = income.filter((item) => item.date.startsWith(month)).reduce((sum, item) => sum + item.convertedAmount, 0);
     const savings = incomeTotal - expenseTotal;
-    const progress = Math.min(100, (expenseTotal / Number(budget || 0)) * 100);
-    return { expenseTotal, incomeTotal, savings, progress };
-  }, [budget, expenses, income]);
+    const progress = Math.min(100, (expenseTotal / Number(budget || 1)) * 100);
+    const categorySpent = Object.fromEntries(
+      availableCategories.map((category) => [
+        category,
+        expenses
+          .filter((item) => item.date.startsWith(month) && item.category === category)
+          .reduce((sum, item) => sum + item.convertedAmount, 0),
+      ])
+    );
+    return { expenseTotal, incomeTotal, savings, progress, categorySpent };
+  }, [budget, expenses, income, availableCategories, currentMonth]);
 
   const saveBudget = async () => {
     if (!profile?.id) return;
-    await addDoc(collection(db, 'budgets'), {
+    const payload = {
       userId: profile.id,
-      month: new Date().toISOString().slice(0, 7),
+      month: currentMonth,
       totalBudget: Number(budget),
-      categoryBudgets: {},
-    });
+      categoryBudgets: Object.fromEntries(
+        availableCategories.map((category) => [category, Number(categoryBudgets[category] || 0)])
+      ),
+    } as BudgetState;
+
+    if (currentBudget) {
+      await setDoc(doc(db, 'budgets', currentBudget.id), payload, { merge: true });
+    } else {
+      await addDoc(collection(db, 'budgets'), payload);
+    }
   };
 
   return (
@@ -85,6 +119,48 @@ export const BudgetPage = () => {
           <p>Budget: {formatMoney(Number(budget), profile?.baseCurrency || 'UGX')}</p>
           <p>Spent: {formatMoney(summary.expenseTotal, profile?.baseCurrency || 'UGX')}</p>
           <p>Savings: {formatMoney(summary.savings, profile?.baseCurrency || 'UGX')}</p>
+        </div>
+        <div className="stats-list">
+          <p>{summary.expenseTotal > Number(budget || 0) ? 'Over budget this month' : 'On track with your budget'}</p>
+          <p>{summary.expenseTotal > Number(budget || 0) ? 'Review category budgets below' : 'Keep going!'}</p>
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <div className="section-header">
+          <h3>Category budgets</h3>
+          <span>{availableCategories.length} categories</span>
+        </div>
+        <div className="input-grid">
+          {availableCategories.map((category) => (
+            <label className="field-group" key={category}>
+              <span className="field-label">{category}</span>
+              <input
+                className="glass-input"
+                type="number"
+                value={categoryBudgets[category] ?? '0'}
+                onChange={(event) => setCategoryBudgets((state) => ({ ...state, [category]: event.target.value }))}
+              />
+            </label>
+          ))}
+        </div>
+        <GlassButton onClick={saveBudget}>Save budget</GlassButton>
+      </GlassCard>
+
+      <GlassCard>
+        <div className="section-header">
+          <h3>Category spending</h3>
+        </div>
+        <div className="stats-list">
+          {availableCategories.map((category) => {
+            const spent = summary.categorySpent[category] || 0;
+            const target = Number(categoryBudgets[category] || 0);
+            return (
+              <p key={category}>
+                {category}: {formatMoney(spent, profile?.baseCurrency || 'UGX')} / {formatMoney(target, profile?.baseCurrency || 'UGX')} {spent > target ? '⚠️' : ''}
+              </p>
+            );
+          })}
         </div>
       </GlassCard>
     </div>

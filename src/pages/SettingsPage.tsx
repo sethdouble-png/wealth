@@ -1,17 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GlassButton } from '../components/GlassButton';
 import { GlassCard } from '../components/GlassCard';
 import { useAuth } from '../contexts/AuthContext';
-import { currencyOptions } from '../lib/formatters';
+import { currencyOptions, categoryOptions } from '../lib/formatters';
 import type { Currency } from '../types';
 
 export const SettingsPage = () => {
   const { profile, updateProfile, logout } = useAuth();
   const [name, setName] = useState(profile?.name || '');
   const [baseCurrency, setBaseCurrency] = useState<Currency>(profile?.baseCurrency || 'UGX');
+  const [theme, setTheme] = useState(profile?.settings.theme || 'light');
+  const [customCategories, setCustomCategories] = useState((profile?.settings.customCategories || []).join(', '));
+
+  useEffect(() => {
+    if (!profile) return;
+    setName(profile.name);
+    setBaseCurrency(profile.baseCurrency);
+    setTheme(profile.settings.theme);
+    setCustomCategories((profile.settings.customCategories || []).join(', '));
+  }, [profile]);
+
+  const categoriesList = useMemo(() => categoryOptions(profile?.settings.customCategories), [profile?.settings.customCategories]);
 
   const handleSave = async () => {
-    await updateProfile({ name, baseCurrency });
+    await updateProfile({
+      name,
+      baseCurrency,
+      settings: {
+        ...profile?.settings,
+        theme: theme as 'light' | 'dark',
+        customCategories: customCategories.split(',').map((value) => value.trim()).filter(Boolean),
+      },
+    });
   };
 
   return (
@@ -38,7 +58,31 @@ export const SettingsPage = () => {
             ))}
           </select>
         </label>
+        <label className="field-group">
+          <span className="field-label">Theme</span>
+          <select className="glass-input" value={theme} onChange={(event) => setTheme(event.target.value)}>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+        <label className="field-group">
+          <span className="field-label">Custom categories</span>
+          <input
+            className="glass-input"
+            value={customCategories}
+            placeholder="Comma-separated categories"
+            onChange={(event) => setCustomCategories(event.target.value)}
+          />
+        </label>
         <GlassButton onClick={handleSave}>Save preferences</GlassButton>
+      </GlassCard>
+      <GlassCard>
+        <p className="list-subtitle">Available categories: {categoriesList.join(', ')}</p>
+      </GlassCard>
+      <GlassCard>
+        <GlassButton variant="secondary" onClick={() => logout()}>
+          Sign out
+        </GlassButton>
       </GlassCard>
 
       <GlassCard>

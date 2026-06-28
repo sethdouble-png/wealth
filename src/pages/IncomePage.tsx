@@ -104,7 +104,7 @@ export const IncomePage = () => {
         </div>
         <ul className="list-stack">
           {income.map((item) => (
-            <IncomeItem key={item.id} item={item} onDelete={handleDelete} />
+            <IncomeItem key={item.id} item={item} baseCurrency={profile?.baseCurrency || 'UGX'} onDelete={handleDelete} />
           ))}
         </ul>
       </GlassCard>
