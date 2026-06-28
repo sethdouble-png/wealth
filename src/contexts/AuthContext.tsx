@@ -40,25 +40,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const profileRef = doc(db, 'users', firebaseUser.uid);
-      const snapshot = await getDoc(profileRef);
-      if (snapshot.exists()) {
-        setProfile(snapshot.data() as UserProfile);
-      } else {
-        const fallbackProfile: UserProfile = {
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || 'Budgeter',
-          email: firebaseUser.email || '',
-          baseCurrency: 'UGX',
-          settings: {
-            theme: 'light',
-            currencyApi: 'exchangerate.host',
-            customCategories: ['Food', 'Transport', 'Rent', 'Utilities', 'Shopping', 'Misc'],
-          },
-        };
-        await setDoc(profileRef, fallbackProfile);
-        setProfile(fallbackProfile);
+      try {
+        const snapshot = await getDoc(profileRef);
+        if (snapshot.exists()) {
+          setProfile(snapshot.data() as UserProfile);
+        } else {
+          const fallbackProfile: UserProfile = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'Budgeter',
+            email: firebaseUser.email || '',
+            baseCurrency: 'UGX',
+            settings: {
+              theme: 'light',
+              currencyApi: 'exchangerate.host',
+              customCategories: ['Food', 'Transport', 'Rent', 'Utilities', 'Shopping', 'Misc'],
+            },
+          };
+          await setDoc(profileRef, fallbackProfile);
+          setProfile(fallbackProfile);
+        }
+      } catch (err) {
+        // Log error and continue so UI doesn't remain stuck on loading
+        // eslint-disable-next-line no-console
+        console.error('Error loading profile:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return unsubscribe;
