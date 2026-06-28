@@ -23,6 +23,7 @@ export const IncomePage = () => {
   const [editingIncome, setEditingIncome] = useState<IncomeRecord | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [showQuickActions, setShowQuickActions] = useState(false);
   const [rates, setRates] = useState<Record<Currency, number>>({ UGX: 1, AED: 1, USD: 1 });
 
   useEffect(() => {
@@ -182,6 +183,22 @@ export const IncomePage = () => {
           ))}
         </ul>
       </GlassCard>
+
+      <div className="fab-shell">
+        <button type="button" className="fab-button" onClick={() => setShowQuickActions((state) => !state)} aria-label="Quick actions">
+          {showQuickActions ? '×' : '+'}
+        </button>
+        {showQuickActions ? (
+          <div className="fab-actions">
+            <button type="button" className="fab-action" onClick={() => { setShowQuickActions(false); setEditingIncome(null); setSource(''); setAmount(''); setCurrency('USD'); setDate(new Date().toISOString().slice(0, 10)); setNotes(''); }}>
+              New
+            </button>
+            <button type="button" className="fab-action" onClick={() => { setShowQuickActions(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              Top
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };

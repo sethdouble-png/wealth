@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ExpenseRecord } from '../types';
 import { formatDate, formatMoney } from '../lib/formatters';
 
@@ -9,10 +10,18 @@ interface ExpenseItemProps {
 }
 
 export const ExpenseItem = ({ item, baseCurrency, onDelete, onEdit }: ExpenseItemProps) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const handleDelete = () => {
+    setMenuOpen(false);
     if (window.confirm('Delete this expense entry?')) {
       onDelete(item.id);
     }
+  };
+
+  const handleEdit = () => {
+    setMenuOpen(false);
+    onEdit(item);
   };
 
   return (
@@ -32,12 +41,21 @@ export const ExpenseItem = ({ item, baseCurrency, onDelete, onEdit }: ExpenseIte
           <p className="list-amount negative">{formatMoney(item.convertedAmount, baseCurrency as any)}</p>
           <p className="list-subtitle">{formatMoney(item.amount, item.currency)}</p>
         </div>
-        <button type="button" className="ghost-button" onClick={() => onEdit(item)}>
-          Edit
-        </button>
-        <button type="button" className="ghost-button danger" onClick={handleDelete}>
-          Delete
-        </button>
+        <div className="action-menu">
+          <button type="button" className="action-fab" onClick={() => setMenuOpen((state) => !state)} aria-label="More actions">
+            +
+          </button>
+          {menuOpen ? (
+            <div className="action-menu-popover">
+              <button type="button" className="ghost-button" onClick={handleEdit}>
+                Edit
+              </button>
+              <button type="button" className="ghost-button danger" onClick={handleDelete}>
+                Delete
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </li>
   );

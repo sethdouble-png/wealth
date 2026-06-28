@@ -3,11 +3,11 @@ import { NavLink } from 'react-router-dom';
 const items = [
   { to: '/dashboard', label: 'Home' },
   { to: '/expenses', label: 'Spend' },
-  { to: '/income', label: 'Income' },
   { to: '/budget', label: 'Budget' },
   { to: '/recurring', label: 'Recurring' },
   { to: '/reports', label: 'Reports' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/income', label: 'Income' },
+  { to: '/settings', label: 'More' },
 ];
 
 export const Navbar = () => (
