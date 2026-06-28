@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { IncomeRecord } from '../types';
 import { formatDate, formatMoney } from '../lib/formatters';
 
@@ -10,26 +9,25 @@ interface IncomeItemProps {
 }
 
 export const IncomeItem = ({ item, baseCurrency, onDelete, onEdit }: IncomeItemProps) => {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   const handleDelete = () => {
-    setMenuOpen(false);
     if (window.confirm('Delete this income entry?')) {
       onDelete(item.id);
     }
   };
 
   const handleEdit = () => {
-    setMenuOpen(false);
     onEdit(item);
   };
 
   return (
     <li className="list-card">
-      <div>
+      <div className="list-body">
         <p className="list-title">{item.source}</p>
-        <p className="list-subtitle">{item.notes || 'No notes'}</p>
-        <p className="list-date">{formatDate(item.date)}</p>
+        <div className="list-meta-row">
+          <span className="list-pill">{formatDate(item.date)}</span>
+          <span className="list-pill">{item.currency}</span>
+          {item.notes ? <span className="list-pill">{item.notes}</span> : null}
+        </div>
         {item.receiptUrl ? (
           <a href={item.receiptUrl} target="_blank" rel="noreferrer" className="list-subtitle receipt-link">
             View receipt
@@ -37,24 +35,17 @@ export const IncomeItem = ({ item, baseCurrency, onDelete, onEdit }: IncomeItemP
         ) : null}
       </div>
       <div className="list-actions">
-        <div>
+        <div className="amount-stack">
           <p className="list-amount positive">{formatMoney(item.convertedAmount, baseCurrency as any)}</p>
           <p className="list-subtitle">{formatMoney(item.amount, item.currency)}</p>
         </div>
-        <div className="action-menu">
-          <button type="button" className="action-fab" onClick={() => setMenuOpen((state) => !state)} aria-label="More actions">
-            +
+        <div className="inline-actions">
+          <button type="button" className="inline-action-button" onClick={handleEdit}>
+            Edit
           </button>
-          {menuOpen ? (
-            <div className="action-menu-popover">
-              <button type="button" className="ghost-button" onClick={handleEdit}>
-                Edit
-              </button>
-              <button type="button" className="ghost-button danger" onClick={handleDelete}>
-                Delete
-              </button>
-            </div>
-          ) : null}
+          <button type="button" className="inline-action-button danger" onClick={handleDelete}>
+            Delete
+          </button>
         </div>
       </div>
     </li>
