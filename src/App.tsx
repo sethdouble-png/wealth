@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ViewPreferencesProvider } from './contexts/ViewPreferencesContext';
 import { BudgetPage } from './pages/BudgetPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ExpensesPage } from './pages/ExpensesPage';
@@ -58,9 +59,11 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <ViewPreferencesProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </ViewPreferencesProvider>
     </AuthProvider>
   );
 }
