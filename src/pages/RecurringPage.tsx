@@ -24,6 +24,9 @@ export const RecurringPage = () => {
   const [interval, setInterval] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState('');
+  const [editingRecurring, setEditingRecurring] = useState<RecurringRecord | null>(null);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [rates, setRates] = useState<Record<Currency, number>>({ UGX: 1, AED: 1, USD: 1 });
 
   useEffect(() => {
@@ -44,11 +47,13 @@ export const RecurringPage = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setMessage('');
+    setError('');
     if (!profile?.id) return;
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) return;
     const convertedAmount = convertAmount(value, currency, profile.baseCurrency, rates);
-    await addDoc(collection(db, 'recurring'), {
+    const payload = {
       userId: profile.id,
       type,
       category: type === 'expense' ? category : undefined,
@@ -60,8 +65,47 @@ export const RecurringPage = () => {
       notes,
       active: true,
       convertedAmount,
-    });
+    };
+
+    try {
+      if (editingRecurring) {
+        await updateDoc(doc(db, 'recurring', editingRecurring.id), payload);
+        setMessage('Recurring item updated successfully.');
+        setEditingRecurring(null);
+      } else {
+        await addDoc(collection(db, 'recurring'), payload);
+        setMessage('Recurring item saved successfully.');
+      }
+      setAmount('');
+      setNotes('');
+    } catch (err) {
+      setError('Unable to save recurring item. Please try again.');
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }
+  };
+
+  const handleEdit = (record: RecurringRecord) => {
+    setEditingRecurring(record);
+    setType(record.type);
+    setCategory(record.category || 'Food');
+    setSource(record.source || 'Salary');
+    setAmount(String(record.amount));
+    setCurrency(record.currency);
+    setInterval(record.interval);
+    setStartDate(record.startDate);
+    setNotes(record.notes);
+  };
+
+  const cancelEdit = () => {
+    setEditingRecurring(null);
+    setType('expense');
+    setCategory('Food');
+    setSource('Salary');
     setAmount('');
+    setCurrency('USD');
+    setInterval('monthly');
+    setStartDate(new Date().toISOString().slice(0, 10));
     setNotes('');
   };
 
@@ -152,7 +196,16 @@ export const RecurringPage = () => {
             <span className="field-label">Notes</span>
             <input className="glass-input" value={notes} onChange={(event) => setNotes(event.target.value)} />
           </label>
-          <GlassButton type="submit">Save recurring item</GlassButton>
+          {message ? <p className="success-message">{message}</p> : null}
+          {error ? <p className="error-message">{error}</p> : null}
+          <div className="form-actions">
+            <GlassButton type="submit">{editingRecurring ? 'Update recurring item' : 'Save recurring item'}</GlassButton>
+            {editingRecurring ? (
+              <GlassButton type="button" variant="secondary" onClick={cancelEdit}>
+                Cancel
+              </GlassButton>
+            ) : null}
+          </div>
         </form>
       </GlassCard>
 
@@ -172,6 +225,9 @@ export const RecurringPage = () => {
               <div className="list-actions">
                 <span className={`list-amount ${record.type === 'expense' ? 'negative' : 'positive'}`}>{record.currency} {record.amount.toFixed(2)}</span>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button className="ghost-button" type="button" onClick={() => handleEdit(record)}>
+                    Edit
+                  </button>
                   <button className="ghost-button" type="button" onClick={() => toggleActive(record)}>
                     {record.active ? 'Pause' : 'Activate'}
                   </button>

@@ -14,6 +14,8 @@ export const BudgetPage = () => {
   const [income, setIncome] = useState<IncomeRecord[]>([]);
   const [budgets, setBudgets] = useState<BudgetState[]>([]);
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   const availableCategories = useMemo(() => categoryOptions(profile?.settings.customCategories), [profile?.settings.customCategories]);
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -73,6 +75,8 @@ export const BudgetPage = () => {
   }, [budget, expenses, income, availableCategories, currentMonth]);
 
   const saveBudget = async () => {
+    setMessage('');
+    setError('');
     if (!profile?.id) return;
     const payload = {
       userId: profile.id,
@@ -83,10 +87,17 @@ export const BudgetPage = () => {
       ),
     } as BudgetState;
 
-    if (currentBudget) {
-      await setDoc(doc(db, 'budgets', currentBudget.id), payload, { merge: true });
-    } else {
-      await addDoc(collection(db, 'budgets'), payload);
+    try {
+      if (currentBudget) {
+        await setDoc(doc(db, 'budgets', currentBudget.id), payload, { merge: true });
+      } else {
+        await addDoc(collection(db, 'budgets'), payload);
+      }
+      setMessage('Budget saved successfully.');
+    } catch (err) {
+      setError('Unable to save budget. Please try again.');
+      // eslint-disable-next-line no-console
+      console.error(err);
     }
   };
 
@@ -104,6 +115,8 @@ export const BudgetPage = () => {
           <span className="field-label">Monthly budget</span>
           <input className="glass-input" type="number" value={budget} onChange={(event) => setBudget(event.target.value)} />
         </label>
+        {message ? <p className="success-message">{message}</p> : null}
+        {error ? <p className="error-message">{error}</p> : null}
         <GlassButton onClick={saveBudget}>Save budget</GlassButton>
       </GlassCard>
 

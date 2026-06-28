@@ -5,9 +5,10 @@ interface IncomeItemProps {
   item: IncomeRecord;
   baseCurrency: string;
   onDelete: (id: string) => void;
+  onEdit: (item: IncomeRecord) => void;
 }
 
-export const IncomeItem = ({ item, baseCurrency, onDelete }: IncomeItemProps) => (
+export const IncomeItem = ({ item, baseCurrency, onDelete, onEdit }: IncomeItemProps) => (
   <li className="list-card">
     <div>
       <p className="list-title">{item.source}</p>
@@ -24,6 +25,9 @@ export const IncomeItem = ({ item, baseCurrency, onDelete }: IncomeItemProps) =>
         <p className="list-amount positive">{formatMoney(item.convertedAmount, baseCurrency as any)}</p>
         <p className="list-subtitle">{formatMoney(item.amount, item.currency)}</p>
       </div>
+      <button className="ghost-button" onClick={() => onEdit(item)}>
+        Edit
+      </button>
       <button className="ghost-button" onClick={() => onDelete(item.id)}>
         Delete
       </button>

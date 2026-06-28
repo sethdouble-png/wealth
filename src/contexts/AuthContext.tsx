@@ -8,6 +8,7 @@ import {
   updateProfile as updateFirebaseProfile,
   type User,
 } from 'firebase/auth';
+import type { FirebaseError } from 'firebase/app';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import type { Currency, UserProfile } from '../types';
@@ -72,25 +73,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Sign in failed', err);
+      throw err as Error;
+    }
   };
 
   const signUp = async (name: string, email: string, password: string) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    await updateFirebaseProfile(result.user, { displayName: name });
-    const profilePayload: UserProfile = {
-      id: result.user.uid,
-      name,
-      email,
-      baseCurrency: 'UGX',
-      settings: {
-        theme: 'light',
-        currencyApi: 'exchangerate.host',
-        customCategories: ['Food', 'Transport', 'Rent', 'Utilities', 'Shopping', 'Misc'],
-      },
-    };
-    await setDoc(doc(db, 'users', result.user.uid), profilePayload);
-    setProfile(profilePayload);
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      await updateFirebaseProfile(result.user, { displayName: name });
+      const profilePayload: UserProfile = {
+        id: result.user.uid,
+        name,
+        email,
+        baseCurrency: 'UGX',
+        settings: {
+          theme: 'light',
+          currencyApi: 'exchangerate.host',
+          customCategories: ['Food', 'Transport', 'Rent', 'Utilities', 'Shopping', 'Misc'],
+        },
+      };
+      await setDoc(doc(db, 'users', result.user.uid), profilePayload);
+      setProfile(profilePayload);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Sign up failed', err);
+      throw err as Error;
+    }
   };
 
   const resetPassword = async (email: string) => {

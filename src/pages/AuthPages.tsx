@@ -5,6 +5,13 @@ import { GlassCard } from '../components/GlassCard';
 import { GlassInput } from '../components/GlassInput';
 import { useAuth } from '../contexts/AuthContext';
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+};
+
 export const LoginPage = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -14,11 +21,12 @@ export const LoginPage = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError('');
     try {
       await signIn(email, password);
       navigate('/dashboard');
-    } catch {
-      setError('Unable to sign in. Please check your credentials.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to sign in. Please check your credentials.'));
     }
   };
 
@@ -52,11 +60,12 @@ export const RegisterPage = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError('');
     try {
       await signUp(name, email, password);
       navigate('/dashboard');
-    } catch {
-      setError('Unable to create an account right now.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to create an account right now.'));
     }
   };
 
@@ -82,14 +91,17 @@ export const ForgotPasswordPage = () => {
   const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setMessage('');
+    setError('');
     try {
       await resetPassword(email);
       setMessage('Password reset email sent.');
-    } catch {
-      setMessage('Unable to send reset email.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to send reset email.'));
     }
   };
 
@@ -100,6 +112,7 @@ export const ForgotPasswordPage = () => {
         <form onSubmit={handleSubmit} className="auth-form">
           <GlassInput label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           {message ? <p className="success-message">{message}</p> : null}
+          {error ? <p className="error-message">{error}</p> : null}
           <GlassButton type="submit">Send reset link</GlassButton>
         </form>
         <Link to="/login">Back to sign in</Link>

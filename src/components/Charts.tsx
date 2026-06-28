@@ -1,15 +1,19 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 import type { ExpenseRecord, IncomeRecord } from '../types';
 
-interface ChartsProps {
+interface ExpenseChartProps {
+  expenses: ExpenseRecord[];
+  baseCurrency: 'UGX' | 'AED' | 'USD';
+}
+
+interface TrendChartProps {
   expenses: ExpenseRecord[];
   income: IncomeRecord[];
-  baseCurrency: 'UGX' | 'AED' | 'USD';
 }
 
 const palette = ['#7c3aed', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#6366f1'];
 
-export const ExpenseChart = ({ expenses, baseCurrency }: ChartsProps) => {
+export const ExpenseChart = ({ expenses, baseCurrency }: ExpenseChartProps) => {
   const data = Object.entries(
     expenses.reduce((acc, expense) => {
       acc[expense.category] = (acc[expense.category] || 0) + expense.convertedAmount;
@@ -34,7 +38,7 @@ export const ExpenseChart = ({ expenses, baseCurrency }: ChartsProps) => {
   );
 };
 
-export const TrendChart = ({ expenses, income }: Pick<ChartsProps, 'expenses' | 'income'>) => {
+export const TrendChart = ({ expenses, income }: TrendChartProps) => {
   const months = Array.from(new Set([...expenses, ...income].map((item) => item.date.slice(0, 7)))).sort();
   const data = months.map((month) => {
     const monthlyExpenses = expenses.filter((item) => item.date.startsWith(month)).reduce((sum, item) => sum + item.convertedAmount, 0);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, query, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { GlassButton } from '../components/GlassButton';
 import { GlassCard } from '../components/GlassCard';
 import { CurrencySelector } from '../components/CurrencySelector';
@@ -18,6 +18,9 @@ export const IncomePage = () => {
   const [currency, setCurrency] = useState<Currency>('USD');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState('');
+  const [editingIncome, setEditingIncome] = useState<IncomeRecord | null>(null);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [rates, setRates] = useState<Record<Currency, number>>({ UGX: 1, AED: 1, USD: 1 });
 
   useEffect(() => {
@@ -36,11 +39,13 @@ export const IncomePage = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setMessage('');
+    setError('');
     if (!profile?.id) return;
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) return;
     const convertedAmount = convertAmount(parsed, currency, profile.baseCurrency, rates);
-    await addDoc(collection(db, 'income'), {
+    const payload = {
       userId: profile.id,
       source,
       amount: parsed,
@@ -48,9 +53,44 @@ export const IncomePage = () => {
       convertedAmount,
       date,
       notes,
-    });
+    };
+
+    try {
+      if (editingIncome) {
+        await updateDoc(doc(db, 'income', editingIncome.id), payload);
+        setMessage('Income updated successfully.');
+        setEditingIncome(null);
+      } else {
+        await addDoc(collection(db, 'income'), payload);
+        setMessage('Income saved successfully.');
+      }
+      setSource('');
+      setAmount('');
+      setCurrency('USD');
+      setDate(new Date().toISOString().slice(0, 10));
+      setNotes('');
+    } catch (err) {
+      setError('Unable to save income. Please try again.');
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }
+  };
+
+  const handleEdit = (item: IncomeRecord) => {
+    setEditingIncome(item);
+    setSource(item.source);
+    setAmount(String(item.amount));
+    setCurrency(item.currency);
+    setDate(item.date);
+    setNotes(item.notes);
+  };
+
+  const cancelEdit = () => {
+    setEditingIncome(null);
     setSource('');
     setAmount('');
+    setCurrency('USD');
+    setDate(new Date().toISOString().slice(0, 10));
     setNotes('');
   };
 
@@ -93,7 +133,16 @@ export const IncomePage = () => {
               <input className="glass-input" value={notes} onChange={(event) => setNotes(event.target.value)} />
             </label>
           </div>
-          <GlassButton type="submit">Save income</GlassButton>
+          {message ? <p className="success-message">{message}</p> : null}
+          {error ? <p className="error-message">{error}</p> : null}
+          <div className="form-actions">
+            <GlassButton type="submit">{editingIncome ? 'Update income' : 'Save income'}</GlassButton>
+            {editingIncome ? (
+              <GlassButton type="button" variant="secondary" onClick={cancelEdit}>
+                Cancel
+              </GlassButton>
+            ) : null}
+          </div>
         </form>
       </GlassCard>
 
@@ -104,7 +153,13 @@ export const IncomePage = () => {
         </div>
         <ul className="list-stack">
           {income.map((item) => (
-            <IncomeItem key={item.id} item={item} baseCurrency={profile?.baseCurrency || 'UGX'} onDelete={handleDelete} />
+            <IncomeItem
+              key={item.id}
+              item={item}
+              baseCurrency={profile?.baseCurrency || 'UGX'}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+            />
           ))}
         </ul>
       </GlassCard>

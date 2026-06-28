@@ -11,6 +11,8 @@ export const SettingsPage = () => {
   const [baseCurrency, setBaseCurrency] = useState<Currency>(profile?.baseCurrency || 'UGX');
   const [theme, setTheme] = useState(profile?.settings.theme || 'light');
   const [customCategories, setCustomCategories] = useState((profile?.settings.customCategories || []).join(', '));
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!profile) return;
@@ -23,15 +25,24 @@ export const SettingsPage = () => {
   const categoriesList = useMemo(() => categoryOptions(profile?.settings.customCategories), [profile?.settings.customCategories]);
 
   const handleSave = async () => {
-    await updateProfile({
-      name,
-      baseCurrency,
-      settings: {
-        ...profile?.settings,
-        theme: theme as 'light' | 'dark',
-        customCategories: customCategories.split(',').map((value) => value.trim()).filter(Boolean),
-      },
-    });
+    setMessage('');
+    setError('');
+    try {
+      await updateProfile({
+        name,
+        baseCurrency,
+        settings: {
+          ...profile?.settings,
+          theme: theme as 'light' | 'dark',
+          customCategories: customCategories.split(',').map((value) => value.trim()).filter(Boolean),
+        },
+      });
+      setMessage('Settings saved successfully.');
+    } catch (err) {
+      setError('Unable to save settings. Please try again.');
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }
   };
 
   return (
@@ -74,6 +85,8 @@ export const SettingsPage = () => {
             onChange={(event) => setCustomCategories(event.target.value)}
           />
         </label>
+        {message ? <p className="success-message">{message}</p> : null}
+        {error ? <p className="error-message">{error}</p> : null}
         <GlassButton onClick={handleSave}>Save preferences</GlassButton>
       </GlassCard>
       <GlassCard>

@@ -19,6 +19,9 @@ export const ExpensesPage = () => {
   const [currency, setCurrency] = useState<Currency>('USD');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState('');
+  const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [rates, setRates] = useState<Record<Currency, number>>({ UGX: 1, AED: 1, USD: 1 });
 
   useEffect(() => {
@@ -40,11 +43,13 @@ export const ExpensesPage = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setMessage('');
+    setError('');
     if (!profile?.id) return;
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) return;
     const convertedAmount = convertAmount(parsed, currency, profile.baseCurrency, rates);
-    await addDoc(collection(db, 'expenses'), {
+    const payload = {
       userId: profile.id,
       category,
       amount: parsed,
@@ -52,8 +57,44 @@ export const ExpensesPage = () => {
       convertedAmount,
       date,
       notes,
-    });
+    };
+
+    try {
+      if (editingExpense) {
+        await updateDoc(doc(db, 'expenses', editingExpense.id), payload);
+        setMessage('Expense updated successfully.');
+        setEditingExpense(null);
+      } else {
+        await addDoc(collection(db, 'expenses'), payload);
+        setMessage('Expense saved successfully.');
+      }
+      setAmount('');
+      setNotes('');
+      setCategory('Food');
+      setCurrency('USD');
+      setDate(new Date().toISOString().slice(0, 10));
+    } catch (err) {
+      setError('Unable to save expense. Please try again.');
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }
+  };
+
+  const handleEdit = (expense: ExpenseRecord) => {
+    setEditingExpense(expense);
+    setCategory(expense.category);
+    setAmount(String(expense.amount));
+    setCurrency(expense.currency);
+    setDate(expense.date);
+    setNotes(expense.notes);
+  };
+
+  const cancelEdit = () => {
+    setEditingExpense(null);
+    setCategory('Food');
     setAmount('');
+    setCurrency('USD');
+    setDate(new Date().toISOString().slice(0, 10));
     setNotes('');
   };
 
@@ -102,7 +143,16 @@ export const ExpensesPage = () => {
               <input className="glass-input" value={notes} onChange={(event) => setNotes(event.target.value)} />
             </label>
           </div>
-          <GlassButton type="submit">Save expense</GlassButton>
+          {message ? <p className="success-message">{message}</p> : null}
+          {error ? <p className="error-message">{error}</p> : null}
+          <div className="form-actions">
+            <GlassButton type="submit">{editingExpense ? 'Update expense' : 'Save expense'}</GlassButton>
+            {editingExpense ? (
+              <GlassButton type="button" variant="secondary" onClick={cancelEdit}>
+                Cancel
+              </GlassButton>
+            ) : null}
+          </div>
         </form>
       </GlassCard>
 
@@ -113,7 +163,13 @@ export const ExpensesPage = () => {
         </div>
         <ul className="list-stack">
           {filteredExpenses.map((item) => (
-            <ExpenseItem key={item.id} item={item} baseCurrency={profile?.baseCurrency || 'UGX'} onDelete={handleDelete} />
+            <ExpenseItem
+              key={item.id}
+              item={item}
+              baseCurrency={profile?.baseCurrency || 'UGX'}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+            />
           ))}
         </ul>
       </GlassCard>

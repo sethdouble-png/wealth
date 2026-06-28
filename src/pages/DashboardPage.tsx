@@ -6,7 +6,7 @@ import { ExpenseChart, TrendChart } from '../components/Charts';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import type { ExpenseRecord, GoalRecord, IncomeRecord } from '../types';
+import type { ExpenseRecord, GoalRecord, IncomeRecord, BudgetState } from '../types';
 import { formatMoney } from '../lib/formatters';
 import { getRates } from '../lib/currency';
 import { loadLocalCollection, saveLocalCollection } from '../lib/offline';
@@ -16,6 +16,8 @@ export const DashboardPage = () => {
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [income, setIncome] = useState<IncomeRecord[]>([]);
   const [goals, setGoals] = useState<GoalRecord[]>([]);
+  const [currentBudget, setCurrentBudget] = useState<BudgetState | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [rates, setRates] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -47,10 +49,17 @@ export const DashboardPage = () => {
       saveLocalCollection(`goals-${profile.id}`, nextGoals);
     });
 
+    const budgetQuery = query(collection(db, 'budgets'), where('userId', '==', profile.id), where('month', '==', selectedMonth));
+    const budgetUnsub = onSnapshot(budgetQuery, (snapshot) => {
+      const [budget] = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BudgetState));
+      setCurrentBudget(budget || null);
+    });
+
     return () => {
       expenseUnsub();
       incomeUnsub();
       goalsUnsub();
+      budgetUnsub();
     };
   }, [profile?.id]);
 
@@ -60,23 +69,33 @@ export const DashboardPage = () => {
   }, [profile]);
 
   const totals = useMemo(() => {
-    const monthKey = new Date().toISOString().slice(0, 7);
+    const monthKey = selectedMonth;
     const monthlyExpenses = expenses.filter((item) => item.date.startsWith(monthKey)).reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
     const monthlyIncome = income.filter((item) => item.date.startsWith(monthKey)).reduce((sum, item) => sum + (item.convertedAmount || 0), 0);
     const monthlySavings = monthlyIncome - monthlyExpenses;
-    const totalBudget = 5000;
+    const totalBudget = currentBudget?.totalBudget ?? 5000;
     const progress = Math.min(100, (monthlyExpenses / (totalBudget || 1)) * 100);
     const budgetLabel = monthlyExpenses > totalBudget ? 'Over budget' : 'On track';
 
     return { monthlyExpenses, monthlyIncome, monthlySavings, progress, budgetLabel };
-  }, [expenses, income]);
+  }, [expenses, income, currentBudget, selectedMonth]);
 
   return (
     <div className="page-shell">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Today at a glance</p>
+          <p className="eyebrow">Monthly performance</p>
           <h1>{profile?.name || 'Your'} dashboard</h1>
+        </div>
+        <div className="field-group">
+          <label className="field-label" htmlFor="dashboard-month-picker">Month</label>
+          <input
+            id="dashboard-month-picker"
+            className="glass-input"
+            type="month"
+            value={selectedMonth}
+            onChange={(event) => setSelectedMonth(event.target.value)}
+          />
         </div>
         <Link to="/reports">
           <GlassButton variant="secondary">Reports</GlassButton>
