@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAoo89wTXK3enksY_b1SWSFtYkwf3dp6Rs',
@@ -15,3 +15,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Enable offline IndexedDB persistence for Firestore so writes queue while offline
+// and sync when the connection is restored. Log failures but continue silently.
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(db).catch((err) => {
+    // Common errors: failed-precondition (multiple tabs), unimplemented (browser)
+    // We'll log a warning for debugging but don't block app usage.
+    // eslint-disable-next-line no-console
+    console.warn('Firestore persistence not enabled:', err?.code || err?.message || err);
+  });
+}
